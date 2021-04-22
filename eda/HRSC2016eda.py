@@ -42,33 +42,16 @@ def getClassinfo(TrainFolder):
 def drawImage(imagePath,imageData):
     # Input image
     image = cv2.imread(imagePath)
-
-    # Converts to grey for better reulsts
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Converts to HSV
-    # hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    # HSV values
-    # lower_skin = np.array([5, 36, 53])
-    # upper_skin = np.array([19, 120, 125])
-
-    # mask = cv2.inRange(hsv, lower_skin, upper_skin)
-
-    # mask = cv2.erode(mask, None, iterations=2)
-    # mask = cv2.dilate(mask, None, iterations=2)
-
-    # Finds contours
-    # im2, cnts, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Draws contours
-    # for c in cnts:
-    #     if cv2.contourArea(c) < 3000:
-    #         continue
-
-        # (x, y, w, h) = cv2.boundingRect(c)
-    cv2.rectangle(image, (194, 507), (972, 243), (0, 255, 0), 2)
+    cv2.rectangle(image, (imageData['bbox'][0], imageData['bbox'][3]), (imageData['bbox'][1], imageData['bbox'][2]), (0, 255, 0), 2)
+    box =cv2.boxPoints(
+        ((imageData['bbox_angle'][0],imageData['bbox_angle'][1]),
+        (imageData['bbox_angle'][2],imageData['bbox_angle'][3]),
+        imageData['bbox_angle'][4]))
+    box = np.int0(box)
+    cv2.drawContours(image, [box], 0, (0, 191, 255), 2)
     cv2.imshow("image", image)
+    cv2.waitKey()
+
         ## BEGIN - draw rotated rectangle
         # rect = cv2.minAreaRect(c)
         # box = cv2.boxPoints(rect)
@@ -94,7 +77,7 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
         x2 = int(anno.findtext("box_xmax"))
         y1 = int(anno.findtext("box_ymin"))
         y2 = int(anno.findtext("box_ymax"))
-        a = -math.degrees(float(anno.findtext("mbox_ang")))
+        a = math.degrees(float(anno.findtext("mbox_ang")))
         cx = float(anno.findtext("mbox_cx"))
         cy = float(anno.findtext("mbox_cy"))
         w = float(anno.findtext("mbox_w"))
