@@ -39,9 +39,14 @@ def getClassinfo(TrainFolder):
     print(Classes)
 
 
-def drawImage(imagePath,imageData):
+def drawImage(imagePath,imageData,className):
     # Input image
     image = cv2.imread(imagePath)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    org = (50, 50)
+    fontScale = 1
+    color = (255, 0, 0)
+    thickness = 2
     cv2.rectangle(image, (imageData['bbox'][0], imageData['bbox'][3]), (imageData['bbox'][1], imageData['bbox'][2]), (0, 255, 0), 2)
     box =cv2.boxPoints(
         ((imageData['bbox_angle'][0],imageData['bbox_angle'][1]),
@@ -49,6 +54,8 @@ def drawImage(imagePath,imageData):
         imageData['bbox_angle'][4]))
     box = np.int0(box)
     cv2.drawContours(image, [box], 0, (0, 191, 255), 2)
+    image = cv2.putText(image, className, org, font,
+                        fontScale, color, thickness, cv2.LINE_AA)
     cv2.imshow("image", image)
     cv2.waitKey()
 
@@ -104,8 +111,7 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
         #     print(file + ":")
         #     print(obj["bbox"])
         objs.append(obj)
-        drawImage(record["file_name"],obj)
-        break
+        drawImage(record["file_name"],obj,ClassesNames.get(anno.findtext("Class_ID")))
     record["annotations"] = objs
     return record
 
