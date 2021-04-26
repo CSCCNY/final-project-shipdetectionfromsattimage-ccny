@@ -1,4 +1,3 @@
-
 import xml.etree.ElementTree as XML
 from itertools import repeat
 from multiprocessing import Pool
@@ -23,6 +22,7 @@ def getClassinfo(TrainFolder):
     ClassCount = 0
     tree = XML.parse(TrainFolder + xmlFile)
     root = tree.getroot()
+
     # print(LoadImageData(IMAGES))
     # Loadimages(IMAGES)
     for Shipclass in root.findall("./HRSC_Classes/HRSC_Class"):
@@ -124,19 +124,28 @@ def returnTESTRECORDS():
     return RECORDS["Test"]
 
 
-def get_Ship_dicts(TrainDir):
-
-    tree = XML.parse(TrainDir + 'sysdata.xml')
+def get_Ship_dicts(Dir):
+    tree = XML.parse(Dir + 'sysdata.xml')
     root = tree.getroot()
-    Images = ''.join(TrainDir + "AllImages/")
-    Annotations = ''.join(TrainDir+"Annotations/")
+    dataset = root.findall('HRSC_DataSet_Exp/HRSC_DSExpImgs/HRSC_DataSet_Exp_Group')
+    trainImages = []
+    valImages = []
+    for d in dataset:
+        if(d.findtext('ExpGroup_Name')=='train'):
+            for k in d.findall('ExpGroup_Imgs/Img_NO'):
+                fileName = k.text + 'xml'
+                trainImages.append(fileName)
 
-    xmlFileList = listdir(Annotations)
-    data = []
-    for f in xmlFileList:
-        imgData = fullAnnotation(f,Annotations,Images)
-        data.append(imgData)
-    return data
+    print(len(trainImages))
+    # Images = ''.join(Dir + "AllImages/")
+    # Annotations = ''.join(Dir+"Annotations/")
+    #
+    # xmlFileList = listdir(Annotations)
+    # data = []
+    # for f in xmlFileList:
+    #     imgData = fullAnnotation(f,Annotations,Images)
+    #     data.append(imgData)
+    # return data
     # data = list(array(map(full_annotation,zip(xmlFileList, repeat(Annotations),repeat(Images)))))
     # return list(data)
     # with Pool() as p:
