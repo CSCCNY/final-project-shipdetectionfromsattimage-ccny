@@ -43,6 +43,7 @@ def getClassinfo(TrainFolder):
     TrainClassesTotals = dict(zip(list(ClassesNames.values()), repeat(int(0))))
     ValClassesTotals = dict(zip(list(ClassesNames.values()), repeat(int(0))))
     Classes = list(ClassesNames.keys())
+    return Classes
     print(Classes)
 
 
@@ -192,9 +193,7 @@ def get_Ship_dicts(Dir):
     #         array(p.starmap(full_annotation, zip(List, repeat(ANNOTATIONS), repeat(SEGMENTS), repeat(IMAGES)))))
     #     RECORDS[i] = list(normal)
 
-getClassinfo(TrainDir)
-TrainData = get_Ship_dicts(TrainDir)
-print(len(TrainData))
+
 # # print(ClassesNames)
 # TrainData,ValidationData = get_Ship_dicts(TrainDir)
 # print(TrainData[0])
