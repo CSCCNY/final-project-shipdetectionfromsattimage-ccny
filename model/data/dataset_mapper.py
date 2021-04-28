@@ -177,12 +177,14 @@ def get_Ship_dicts(Dir):
         annoRecord = []
         for i in range(0, len(annoData['annotations'])):
             fileName = annoData['file_name']
+            height = annoData['height']
+            width = annoData['width']
             startX = annoData['annotations'][i]['bbox'][0]
             startY = annoData['annotations'][i]['bbox'][1]
             endX = annoData['annotations'][i]['bbox'][2]
             endY = annoData['annotations'][i]['bbox'][3]
             classID = annoData['annotations'][i]['category_id']
-            annoRecord = [fileName, startX, startY, endX, endY, classID]
+            annoRecord = [fileName,width,height,startX, startY, endX, endY, classID]
             AnnoData.append(annoRecord)
 
     print(len(AnnoData))
