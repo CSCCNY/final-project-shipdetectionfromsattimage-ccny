@@ -158,22 +158,34 @@ def get_Ship_dicts(Dir):
     '''
     # annoData = fullAnnotation('100000705', Annotations, Images)
     # AnnoData.append(annoData)
-    annoRecord=[]
-    annoData = fullAnnotation('100000705.xml', Annotations, Images)
-    for i in range(0,len(annoData['annotations'])):
-        fileName = annoData['file_name']
-        startX = annoData['annotations'][i]['bbox'][0]
-        startY = annoData['annotations'][i]['bbox'][1]
-        endX = annoData['annotations'][i]['bbox'][2]
-        endY = annoData['annotations'][i]['bbox'][3]
-        classID = annoData['annotations'][i]['category_id']
-        annoRecord =[fileName,startX,startY,endX,endY,classID]
-        AnnoData.append(annoRecord)
-    print(AnnoData)
+    # annoRecord=[]
+    # annoData = fullAnnotation('100000705.xml', Annotations, Images)
+    # for i in range(0,len(annoData['annotations'])):
+    #     fileName = annoData['file_name']
+    #     startX = annoData['annotations'][i]['bbox'][0]
+    #     startY = annoData['annotations'][i]['bbox'][1]
+    #     endX = annoData['annotations'][i]['bbox'][2]
+    #     endY = annoData['annotations'][i]['bbox'][3]
+    #     classID = annoData['annotations'][i]['category_id']
+    #     annoRecord =[fileName,startX,startY,endX,endY,classID]
+    #     AnnoData.append(annoRecord)
+    # print(AnnoData)
 
-    # for f in AnnotationFileList:
-    #     annoData = fullAnnotation(f, Annotations, Images)
-    #     AnnoData.append(annoData)
+    for f in AnnotationFileList:
+        annoData = fullAnnotation(f, Annotations, Images)
+        annoRecord = []
+        for i in range(0, len(annoData['annotations'])):
+            fileName = annoData['file_name']
+            startX = annoData['annotations'][i]['bbox'][0]
+            startY = annoData['annotations'][i]['bbox'][1]
+            endX = annoData['annotations'][i]['bbox'][2]
+            endY = annoData['annotations'][i]['bbox'][3]
+            classID = annoData['annotations'][i]['category_id']
+            annoRecord = [fileName, startX, startY, endX, endY, classID]
+            AnnoData.append(annoRecord)
+
+    print(len(AnnoData))
+    return AnnoData
     # with Pool() as p:
     #
     #     normal = list(
@@ -181,7 +193,8 @@ def get_Ship_dicts(Dir):
     #     RECORDS[i] = list(normal)
 
 getClassinfo(TrainDir)
-get_Ship_dicts(TrainDir)
+TrainData = get_Ship_dicts(TrainDir)
+print(len(TrainData))
 # # print(ClassesNames)
 # TrainData,ValidationData = get_Ship_dicts(TrainDir)
 # print(TrainData[0])
