@@ -24,6 +24,8 @@ from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -104,17 +106,16 @@ lossWeights = {
 # # summary
 opt = Adam(lr=0.0001)
 model.compile(loss=losses, optimizer=opt, metrics=["accuracy"], loss_weights=lossWeights)
-print(model.summary())
-
-checkpoint_path = "training_1/cp.ckpt"
-checkpoint_dir = os.path.dirname(checkpoint_path)
+# print(model.summary())
+Batch_Size=32
+Num_Epoch=100
+# checkpoint_path = "../checkpoint/cp-{epoch:04d}.ckpt"
+# checkpoint_dir = os.path.dirname(checkpoint_path)
 
 # Create a callback that saves the model's weights
-cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                 save_weights_only=True,
-                                                 verbose=1)
+# cp_callback = ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True, verbose=1, save_freq=1*Batch_Size)
 
-
+# model.save_weights(checkpoint_path.format(epoch=Num_Epoch))
 
 # construct a dictionary for our target training outputs
 trainTargets = {
@@ -132,26 +133,28 @@ testTargets = {
 # train the network for bounding box regression and class label
 # prediction
 print("[INFO] training model...")
+# H = load_model('../model_weights/loaded_model.h5')
+# H.compile(loss=losses, optimizer=opt, metrics=["accuracy"], loss_weights=lossWeights)
 H = model.fit(
 	trainImages, trainTargets,
 	validation_data=(testImages, testTargets),
-	batch_size=64,
-	epochs=1,
+	batch_size=Batch_Size,
+	epochs=Num_Epoch,
 	verbose=1)
 
 # serialize the model to disk
 print("[INFO] saving object detector model...")
-model.save('../model_weights/second_model.h5', save_format="h5")
+model.save('../model_weights/basic_model100.h5', save_format="h5")
 
 # serialize the label binarizer to disk
 print("[INFO] saving label binarizer...")
-f = open('../model_weights/second_model.pickle', "wb")
+f = open('../model_weights/basic_model100.pickle', "wb")
 f.write(pickle.dumps(lb))
 f.close()
 
 # plot the total loss, label loss, and bounding box loss
 lossNames = ["loss", "class_label_loss", "bounding_box_loss"]
-N = np.arange(0, 64)
+N = np.arange(0, Num_Epoch)
 plt.style.use("ggplot")
 (fig, ax) = plt.subplots(3, 1, figsize=(13, 13))
 
@@ -168,7 +171,7 @@ for (i, l) in enumerate(lossNames):
 
 # save the losses figure and create a new figure for the accuracies
 plt.tight_layout()
-plotPath = os.path.sep.join(["../plots/", "losses.png"])
+plotPath = os.path.sep.join(["../plots/", "losses100.png"])
 plt.savefig(plotPath)
 plt.close()
 
@@ -183,5 +186,5 @@ plt.ylabel("Accuracy")
 plt.legend(loc="lower left")
 
 # save the accuracies plot
-plotPath = os.path.sep.join(["../plots/", "accs.png"])
+plotPath = os.path.sep.join(["../plots/", "accs100.png"])
 plt.savefig(plotPath)
