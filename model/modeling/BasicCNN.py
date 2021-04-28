@@ -106,6 +106,15 @@ opt = Adam(lr=0.0001)
 model.compile(loss=losses, optimizer=opt, metrics=["accuracy"], loss_weights=lossWeights)
 print(model.summary())
 
+checkpoint_path = "training_1/cp.ckpt"
+checkpoint_dir = os.path.dirname(checkpoint_path)
+
+# Create a callback that saves the model's weights
+cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1)
+
+
 
 # construct a dictionary for our target training outputs
 trainTargets = {
@@ -126,17 +135,17 @@ print("[INFO] training model...")
 H = model.fit(
 	trainImages, trainTargets,
 	validation_data=(testImages, testTargets),
-	batch_size=32,
-	epochs=16,
+	batch_size=64,
+	epochs=1,
 	verbose=1)
 
 # serialize the model to disk
 print("[INFO] saving object detector model...")
-model.save('../model_weights/', save_format="h5")
+model.save('../model_weights/second_model.h5', save_format="h5")
 
 # serialize the label binarizer to disk
 print("[INFO] saving label binarizer...")
-f = open('../model_weights', "wb")
+f = open('../model_weights/second_model.pickle', "wb")
 f.write(pickle.dumps(lb))
 f.close()
 
