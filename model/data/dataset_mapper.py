@@ -74,7 +74,7 @@ def drawImage(imagePath,imageData,className):
         ## END - draw rotated rectangle
 
     # cv2.imwrite('out.png', image)
-def fullAnnotation(file, AnnotationsFolder,PicFolder,isTrain):
+def fullAnnotation(file, AnnotationsFolder,PicFolder):
     global Classes, ClassesNames,ClassesTotals,TrainClassesTotals,ValClassesTotals
     tree = XML.parse(''.join(AnnotationsFolder + file))
     root = tree.getroot()
@@ -158,9 +158,17 @@ def get_Ship_dicts(Dir):
     '''
     # annoData = fullAnnotation('100000705', Annotations, Images)
     # AnnoData.append(annoData)
-
-    annoData = fullAnnotation('100000001', Annotations, Images)
-    AnnoData.append(annoData)
+    annoRecord=[]
+    annoData = fullAnnotation('100000705.xml', Annotations, Images)
+    for i in range(0,len(annoData['annotations'])):
+        fileName = annoData['file_name']
+        startX = annoData['annotations'][i]['bbox'][0]
+        startY = annoData['annotations'][i]['bbox'][1]
+        endX = annoData['annotations'][i]['bbox'][2]
+        endY = annoData['annotations'][i]['bbox'][3]
+        classID = annoData['annotations'][i]['category_id']
+        annoRecord =[fileName,startX,startY,endX,endY,classID]
+        AnnoData.append(annoRecord)
     print(AnnoData)
 
     # for f in AnnotationFileList:
