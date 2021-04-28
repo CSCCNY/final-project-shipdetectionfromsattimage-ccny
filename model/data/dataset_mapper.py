@@ -102,14 +102,14 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder,isTrain):
                 (x1, y2),
                 (x1, y1)]
         obj = {
-            "bbox" : [x1,x2,y1,y2],
+            "bbox" : [x1,y1,x2,y2],
             "polygon" : poly,
             "bbox_angle": [cx, cy, w, h, a],
             "category_id": Classes.index(anno.findtext("Class_ID")),
         }
         ClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
-        if(isTrain): TrainClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
-        else: ValClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
+        # if(isTrain): TrainClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
+        # else: ValClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
         # for key in ClassesNames.keys():
         ##  obj.update({key:0})
         # obj.update({obj["category_id"]:1})
@@ -143,53 +143,37 @@ def returnTESTRECORDS():
 
 
 def get_Ship_dicts(Dir):
-    global trainData,valData
-    tree = XML.parse(Dir + 'sysdata.xml')
-    root = tree.getroot()
-    dataset = root.findall('HRSC_DataSet_Exp/HRSC_DSExpImgs/HRSC_DataSet_Exp_Group')
-    trainImages = []
-    valImages = []
-    for d in dataset:
-        if(d.findtext('ExpGroup_Name')=='train'):
-            for k in d.findall('ExpGroup_Imgs/Img_NO'):
-                fileName = k.text + '.xml'
-                trainImages.append(fileName)
-        if (d.findtext('ExpGroup_Name') == 'val'):
-            for k in d.findall('ExpGroup_Imgs/Img_NO'):
-                fileName = k.text + '.xml'
-                valImages.append(fileName)
-
-    print(len(trainImages))
-    print(len(valImages))
     Images = ''.join(Dir + "AllImages/")
-    Annotations = ''.join(Dir+"Annotations/")
-    #
-    # xmlFileList = listdir(Annotations)
-    trainData = []
-    valData = []
-    isTrain = True
-    for f in trainImages:
-        imgData = fullAnnotation(f,Annotations,Images,isTrain)
-        trainData.append(imgData)
+    Annotations = ''.join(Dir + "Annotations/")
+    AnnotationFileList = listdir(Annotations)
+    AnnoData = []
+    '''
+    format of annotation data: imagePath,imageID,height,width,x1,y1,x2,y2,classID
+    imagePath: location of the image
+    x1 = x_min
+    y1 = y_min
+    x2 = x_max
+    y2 = y_max
+    classID = corresponding class id generated from getClassInfo() 
+    '''
+    # annoData = fullAnnotation('100000705', Annotations, Images)
+    # AnnoData.append(annoData)
 
-    isTrain= False
-    for f in valImages:
-        imgData = fullAnnotation(f, Annotations, Images,isTrain)
-        valData.append(imgData)
+    annoData = fullAnnotation('100000001', Annotations, Images)
+    AnnoData.append(annoData)
+    print(AnnoData)
 
-    return trainData,valData
-    # showTrainValSplit()
-
-    # return data
-    # data = list(array(map(full_annotation,zip(xmlFileList, repeat(Annotations),repeat(Images)))))
-    # return list(data)
+    # for f in AnnotationFileList:
+    #     annoData = fullAnnotation(f, Annotations, Images)
+    #     AnnoData.append(annoData)
     # with Pool() as p:
-    #     xmlFileList = listdir(Annotations)
+    #
     #     normal = list(
-    #         np.array(p.starmap(full_annotation, zip(xmlFileList, repeat(Annotations),repeat(Images)))))
-    #     return list(normal)
+    #         array(p.starmap(full_annotation, zip(List, repeat(ANNOTATIONS), repeat(SEGMENTS), repeat(IMAGES)))))
+    #     RECORDS[i] = list(normal)
 
-# getClassinfo(TrainDir)
+getClassinfo(TrainDir)
+get_Ship_dicts(TrainDir)
 # # print(ClassesNames)
 # TrainData,ValidationData = get_Ship_dicts(TrainDir)
 # print(TrainData[0])
