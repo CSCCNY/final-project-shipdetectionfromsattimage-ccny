@@ -3,11 +3,13 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.keras.utils import to_categorical
 import numpy as np
+from sklearn.preprocessing import LabelBinarizer
+import model.data.dataset_mapper as dataset_mapper
 
 
-# DataDir = "/media/sujoy/Elements/Ship_Dataset/HRSC2016/"
-# TrainDir = DataDir + "Train/"
-# TestDir = DataDir + "Test/"
+DataDir = "/media/sujoy/Elements/Ship_Dataset/HRSC2016/"
+TrainDir = DataDir + "Train/"
+TestDir = DataDir + "Test/"
 
 imageData = []
 classLabels = []
@@ -39,9 +41,17 @@ def preprocess(TrainData):
     classLabels = np.array(classLabels)
     bboxes = np.array(bboxes, dtype="float32")
     imagePaths = np.array(imagePaths)
-    classLabels = to_categorical(classLabels)
-    return imageData,classLabels,bboxes,imagePaths,classLabels
 
+    # perform one-hot encoding on the labels
+    lb = LabelBinarizer()
+    classLabels = lb.fit_transform(classLabels)
 
+    # classLabels = to_categorical(classLabels)
+
+    # classLabels = to_categorical(classLabels)
+    return imageData,classLabels,bboxes,imagePaths,lb
+
+# Classes = dataset_mapper.getClassinfo(TrainDir)
+# TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
 # preprocess(TrainData)
 # print(len(TrainData),len(imageData),len(classLabels),len(bboxes),len(imagePaths))

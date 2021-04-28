@@ -14,7 +14,6 @@ Network Architecture
 ------------------------------------------
 '''
 import os
-from scipy.constants import lb
 from tensorflow.keras.optimizers import Adam
 import model.data.dataset_mapper as dataset_mapper
 import model.data.data_preprocess as data_preprocess
@@ -36,7 +35,7 @@ TestDir = DataDir + "Test/"
 Classes = dataset_mapper.getClassinfo(TrainDir)
 TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
 
-data,labels,bboxes,imagePaths,classLabels = data_preprocess.preprocess(TrainData)
+data,labels,bboxes,imagePaths,lb= data_preprocess.preprocess(TrainData)
 
 
 split = train_test_split(data, labels, bboxes, imagePaths, test_size=0.20, random_state=42)
@@ -78,7 +77,7 @@ softmaxHead = Dense(512, activation="relu")(flatten)
 softmaxHead = Dropout(0.5)(softmaxHead)
 softmaxHead = Dense(512, activation="relu")(softmaxHead)
 softmaxHead = Dropout(0.5)(softmaxHead)
-softmaxHead = Dense(len(labels), activation="softmax", name="class_label")(softmaxHead)
+softmaxHead = Dense(len(lb.classes_), activation="softmax", name="class_label")(softmaxHead)
 #
 # # put together our model which accept an input image and then output
 # # bounding box coordinates and a class label

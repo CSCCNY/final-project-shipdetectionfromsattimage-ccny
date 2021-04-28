@@ -106,7 +106,8 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
             "bbox" : [x1,y1,x2,y2],
             "polygon" : poly,
             "bbox_angle": [cx, cy, w, h, a],
-            "category_id": Classes.index(anno.findtext("Class_ID")),
+            "category_id": anno.findtext("Class_ID"),
+            # "category_id": Classes.index(anno.findtext("Class_ID")),
         }
         ClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
         # if(isTrain): TrainClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
@@ -195,7 +196,10 @@ def get_Ship_dicts(Dir):
     #         array(p.starmap(full_annotation, zip(List, repeat(ANNOTATIONS), repeat(SEGMENTS), repeat(IMAGES)))))
     #     RECORDS[i] = list(normal)
 
-
+# 5 classes has no image
+# getClassinfo(TrainDir)
+# AnnotationData = get_Ship_dicts(TrainDir)
+# print(ClassesTotals)
 # # print(ClassesNames)
 # TrainData,ValidationData = get_Ship_dicts(TrainDir)
 # print(TrainData[0])
