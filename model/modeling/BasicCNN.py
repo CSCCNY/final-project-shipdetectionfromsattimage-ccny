@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
-DataDir = "/media/sujoy/Elements/Ship_Dataset/HRSC2016/"
+DataDir = "/media/sujoy/New Volume1/HRSC2016/"
 TrainDir = DataDir + "Train/"
 TestDir = DataDir + "Test/"
 
@@ -132,7 +132,7 @@ testTargets = {
 
 # train the network for bounding box regression and class label
 # prediction
-print("[INFO] training model...")
+print("training model...")
 # H = load_model('../model_weights/loaded_model.h5')
 # H.compile(loss=losses, optimizer=opt, metrics=["accuracy"], loss_weights=lossWeights)
 H = model.fit(
@@ -143,11 +143,11 @@ H = model.fit(
 	verbose=1)
 
 # serialize the model to disk
-print("[INFO] saving object detector model...")
+print("saving object detector model...")
 model.save('../model_weights/basic_model100.h5', save_format="h5")
 
 # serialize the label binarizer to disk
-print("[INFO] saving label binarizer...")
+print("saving label...")
 f = open('../model_weights/basic_model100.pickle', "wb")
 f.write(pickle.dumps(lb))
 f.close()
