@@ -1,11 +1,17 @@
 
 # import the necessary packages
 # python generate_images.py --image dog.jpg --output generated_dataset/dogs
+import model.data.dataset_mapper as dataset_mapper
+import model.data.data_preprocess as data_preprocess
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.preprocessing.image import load_img
 import numpy as np
-from dataset_mapper import getClassinfo
+from dataset_mapper import fullAnnotation
+
+DataDir = "/media/sujoy/New Folder/Ship_Dataset/HRSC2016/"
+TrainDir = DataDir + "Train/"
+TestDir = DataDir + "Test/"
 
 OUTPUT = "../generatedData/"
 def dataGenerator(imagePath):
@@ -39,6 +45,8 @@ def dataGenerator(imagePath):
 		if total == 4:
 			break
 
+Classes = dataset_mapper.getClassinfo(TrainDir)
+TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
 # construct the argument parser and parse the arguments
 # ap = argparse.ArgumentParser()
 # ap.add_argument("-i", "--image", required=True,
