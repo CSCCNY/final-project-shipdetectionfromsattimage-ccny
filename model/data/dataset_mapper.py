@@ -11,6 +11,40 @@ import matplotlib.pyplot as plt
 DataDir = "/media/sujoy/New Folder/Ship_Dataset/HRSC2016/"
 TrainDir = DataDir + "Train/"
 TestDir = DataDir + "Test/"
+AllowedNumberofImagesPerClass = {
+'ship': 386,
+'aircraft carrier': 101,
+'warcraft': 230,
+'Nimitz class aircraft carrier': 166,
+'Enterprise class aircraft carrier': 180,
+'Arleigh Burke class destroyers': 350,
+'WhidbeyIsland class landing craft': 324 ,
+'Perry class frigate': 300,
+'Sanantonio class amphibious transport dock': 186,
+'Ticonderoga class cruiser': 300,
+'Kitty Hawk class aircraft carrier': 0,
+'Admiral Kuznetsov aircraft carrier': 106,
+'Abukuma-class destroyer escort': 0,
+'Austen class amphibious transport dock': 281,
+'Tarawa-class amphibious assault ship': 220,
+'USS Blue Ridge (LCC-19)': 0,
+'Container ship': 155,
+'OXo|--)': 150,
+'Car carrier([]==[])': 105,
+'Hovercraft': 255,
+'yacht': 212,
+'Container ship(_|.--.--|_]=': 150,
+'Cruise ship': 106,
+'submarine': 200,
+'lute': 125,
+'Medical ship': 123,
+'Car carrier(======|': 122,
+'Ford-class aircraft carriers': 0,
+'Midway-class aircraft carrier': 109,
+'Invincible-class aircraft carrier': 0
+}
+
+
 
 imagePathPerClass = {}
 ClassesNames = {}
@@ -45,7 +79,7 @@ def getClassinfo(TrainFolder):
     ValClassesTotals = dict(zip(list(ClassesNames.values()), repeat(int(0))))
     Classes = list(ClassesNames.keys())
     return Classes
-    print(Classes)
+
 
 
 def drawImage(imagePath,imageData,className):
@@ -90,6 +124,7 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
     classId = None
     # print(file)
     for anno in annfolders:
+        classId = anno.findtext("Class_ID")
         x1 = int(anno.findtext("box_xmin"))
         x2 = int(anno.findtext("box_xmax"))
         y1 = int(anno.findtext("box_ymin"))
@@ -111,8 +146,9 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
             "category_id": anno.findtext("Class_ID"),
             # "category_id": Classes.index(anno.findtext("Class_ID")),
         }
-        ClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
-        classId = anno.findtext("Class_ID")
+        if(classId != "100000004"):
+            ClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
+            objs.append(obj)
         # if(isTrain): TrainClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
         # else: ValClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
         # for key in ClassesNames.keys():
@@ -124,7 +160,7 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
         # except:
         #     print(file + ":")
         #     print(obj["bbox"])
-        objs.append(obj)
+
         # drawImage(record["file_name"],obj,ClassesNames.get(anno.findtext("Class_ID")))
     record["annotations"] = objs
 
@@ -151,6 +187,10 @@ def returnTRAINRECORDS():
 def returnTESTRECORDS():
     return RECORDS["Test"]
 
+
+
+
+
 def get_augmented_Ship_dicts(augmented_image_data_file,TrainData):
     import json
     global ClassesTotals
@@ -169,9 +209,10 @@ def get_augmented_Ship_dicts(augmented_image_data_file,TrainData):
                 endX = f['annotation'][i]['x_max']
                 endY = f['annotation'][i]['y_max']
                 classID = f['annotation'][i]['classID']
-                ClassesTotals[ClassesNames.get(classID)] += 1
-                annoRecord = [fileName,width,height,startX, startY, endX, endY, classID]
-                TrainData.append(annoRecord)
+                if( ClassesTotals[ClassesNames.get(classID)] <= AllowedNumberofImagesPerClass.get(ClassesNames.get(classID)) ):
+                    ClassesTotals[ClassesNames.get(classID)] += 1
+                    annoRecord = [fileName,width,height,startX, startY, endX, endY, classID]
+                    TrainData.append(annoRecord)
         return TrainData
 
 def get_Ship_dicts(Dir):
@@ -215,6 +256,7 @@ def get_Ship_dicts(Dir):
             endX = annoData['annotations'][i]['bbox'][2]
             endY = annoData['annotations'][i]['bbox'][3]
             classID = annoData['annotations'][i]['category_id']
+
             annoRecord = [fileName,width,height,startX, startY, endX, endY, classID]
             AnnoData.append(annoRecord)
 
