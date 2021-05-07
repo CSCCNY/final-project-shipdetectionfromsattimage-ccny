@@ -168,8 +168,55 @@ def data_generator(image_path):
 
 	for k in range(0,numberOfImages):
 		imagePath =  image_path[k]
+		aug_record = []
+		for augs_counter in range(0,augsPerImage):
+			bboxes, category_ids, max_w, max_h = getBoundingBox(imagePath)
+			transform = A.Compose([
+								A.RandomSizedBBoxSafeCrop(width=int(max_w),height=int(max_h),erosion_rate=0.2),
+								A.RandomScale(p=0.8),
+								A.Flip(p=0.7),
+								A.RandomBrightnessContrast(brightness_limit=.7,brightness_by_max=False, contrast_limit=.7, p=0.8)
+							],
 
+							bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']),
+						)
 
+			image = cv2.imread(imagePath)
+			image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+			transformed = transform(image=image, bboxes=bboxes, category_ids=category_ids)
+
+			fileName = AugmentedDir + str.split((str.split(imagePath, '/')[-1]), '.')[0] + '_' + str(augs_counter) + '.bmp'
+			cv2.imwrite(fileName, transformed['image'])
+			aug_image = {}
+			aug_image['file_name'] = fileName
+			aug_image['height'] = transformed['image'].shape[0]
+			aug_image['width'] = transformed['image'].shape[1]
+			objs=[]
+
+			for cat in range(0,len(transformed['category_ids'])):
+				obj = {}
+				obj['x_min'] = transformed['bboxes'][cat][0]
+				obj['y_min'] =transformed['bboxes'][cat][1]
+				obj['x_max'] =transformed['bboxes'][cat][2]
+				obj['y_max'] =transformed['bboxes'][cat][3]
+				obj['classID'] =transformed['category_ids'][cat]
+				objs.append(obj)
+				# drawImage(fileName, transformed['bboxes'][cat], transformed['category_ids'][cat])
+			aug_image['annotation']=objs
+			with open('aug_image_data.json', 'r+') as file:
+				# First we load existing data into a dict.
+				file_data = json.load(file)
+				# Join new_dat3a with file_data
+				file_data.append(aug_image)
+				# Sets file's current position at offset.
+				file.seek(0)
+				# convert back to json.
+				json.dump(file_data, file, indent=4)
+			# print(aug_image)
+			# aug_record.append(aug_image)
+
+			# with open('outputfile_2.json', 'w') as file:
+			# 	file.write(json.dumps(aug_record, indent=4))
 
 # Classes = dataset_mapper.getClassinfo(TrainDir)
 # TrainData = dataset_mapper.get_Ship_dicts(TrainDir)

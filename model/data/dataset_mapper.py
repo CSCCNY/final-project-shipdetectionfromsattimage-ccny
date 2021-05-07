@@ -8,10 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-DataDir = "/media/sujoy/Elements/Ship_Dataset/HRSC2016/"
+DataDir = "/media/sujoy/New Folder/Ship_Dataset/HRSC2016/"
 TrainDir = DataDir + "Train/"
 TestDir = DataDir + "Test/"
 
+imagePathPerClass = {}
 ClassesNames = {}
 ClassesDicts = {}
 ClassesTotals = {}
@@ -76,7 +77,7 @@ def drawImage(imagePath,imageData,className):
 
     # cv2.imwrite('out.png', image)
 def fullAnnotation(file, AnnotationsFolder,PicFolder):
-    global Classes, ClassesNames,ClassesTotals,TrainClassesTotals,ValClassesTotals
+    global Classes, ClassesNames,ClassesTotals,TrainClassesTotals,ValClassesTotals, imagePathPerClass
     tree = XML.parse(''.join(AnnotationsFolder + file))
     root = tree.getroot()
     annfolders = root.findall("HRSC_Objects/HRSC_Object")
@@ -86,6 +87,7 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
     record["height"] = int(root.findtext("Img_SizeHeight"))
     record["width"] = int(root.findtext("Img_SizeWidth"))
     objs = []
+    classId = None
     # print(file)
     for anno in annfolders:
         x1 = int(anno.findtext("box_xmin"))
@@ -110,6 +112,7 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
             # "category_id": Classes.index(anno.findtext("Class_ID")),
         }
         ClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
+        classId = anno.findtext("Class_ID")
         # if(isTrain): TrainClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
         # else: ValClassesTotals[ClassesNames.get(anno.findtext("Class_ID"))] += 1
         # for key in ClassesNames.keys():
@@ -124,6 +127,11 @@ def fullAnnotation(file, AnnotationsFolder,PicFolder):
         objs.append(obj)
         # drawImage(record["file_name"],obj,ClassesNames.get(anno.findtext("Class_ID")))
     record["annotations"] = objs
+
+    if classId not in imagePathPerClass:
+        imagePathPerClass[classId] = [record["file_name"]]
+    else: imagePathPerClass[classId].append(record["file_name"])
+
     return record
 
 def showTrainValSplit():
@@ -143,6 +151,28 @@ def returnTRAINRECORDS():
 def returnTESTRECORDS():
     return RECORDS["Test"]
 
+def get_augmented_Ship_dicts(augmented_image_data_file,TrainData):
+    import json
+    global ClassesTotals
+    with open(augmented_image_data_file) as json_file:
+        Annotations = json.load(json_file)
+
+        for f in Annotations:
+            # annoData = fullAnnotation(f, Annotations, Images)
+            annoRecord = []
+            for i in range(0, len(f['annotation'])):
+                fileName = f['file_name']
+                height = f['height']
+                width = f['width']
+                startX = f['annotation'][i]['x_min']
+                startY = f['annotation'][i]['y_min']
+                endX = f['annotation'][i]['x_max']
+                endY = f['annotation'][i]['y_max']
+                classID = f['annotation'][i]['classID']
+                ClassesTotals[ClassesNames.get(classID)] += 1
+                annoRecord = [fileName,width,height,startX, startY, endX, endY, classID]
+                TrainData.append(annoRecord)
+        return TrainData
 
 def get_Ship_dicts(Dir):
     Images = ''.join(Dir + "AllImages/")

@@ -30,13 +30,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
-DataDir = "/media/sujoy/New Volume1/HRSC2016/"
+DataDir = "/media/sujoy/New Volume/HRSC2016/"
 TrainDir = DataDir + "Train/"
 TestDir = DataDir + "Test/"
-
+AugmentedFileDir = "/media/sujoy/New Volume/Github/final-project-shipdetectionfromsattimage-ccny/model/data/"
+augmented_image_data_file =AugmentedFileDir + "aug_image_data.json"
 Classes = dataset_mapper.getClassinfo(TrainDir)
 TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
-
+print(dataset_mapper.ClassesTotals)
+TrainData = dataset_mapper.get_augmented_Ship_dicts(augmented_image_data_file,TrainData)
+print(dataset_mapper.ClassesTotals)
 data,labels,bboxes,imagePaths,lb= data_preprocess.preprocess(TrainData)
 
 
@@ -106,8 +109,8 @@ lossWeights = {
 # # summary
 opt = Adam(lr=0.0001)
 model.compile(loss=losses, optimizer=opt, metrics=["accuracy"], loss_weights=lossWeights)
-# print(model.summary())
-Batch_Size=32
+print(model.summary())
+Batch_Size=64
 Num_Epoch=100
 # checkpoint_path = "../checkpoint/cp-{epoch:04d}.ckpt"
 # checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -144,11 +147,11 @@ H = model.fit(
 
 # serialize the model to disk
 print("saving object detector model...")
-model.save('../model_weights/basic_model100.h5', save_format="h5")
+model.save('../model_weights/basic_model_b'+str(Batch_Size)+'_e'+str(Num_Epoch)+'.h5', save_format="h5")
 
 # serialize the label binarizer to disk
 print("saving label...")
-f = open('../model_weights/basic_model100.pickle', "wb")
+f = open('../model_weights/basic_model'+'_b'+str(Batch_Size)+'_e'+str(Num_Epoch)+'.pickle', "wb")
 f.write(pickle.dumps(lb))
 f.close()
 
@@ -171,7 +174,7 @@ for (i, l) in enumerate(lossNames):
 
 # save the losses figure and create a new figure for the accuracies
 plt.tight_layout()
-plotPath = os.path.sep.join(["../plots/", "losses100.png"])
+plotPath = os.path.sep.join(["../plots/", "losses"+"_b"+str(Batch_Size)+"_e"+str(Num_Epoch)+".png"])
 plt.savefig(plotPath)
 plt.close()
 
@@ -186,5 +189,5 @@ plt.ylabel("Accuracy")
 plt.legend(loc="lower left")
 
 # save the accuracies plot
-plotPath = os.path.sep.join(["../plots/", "accs100.png"])
+plotPath = os.path.sep.join(["../plots/", "accs"+"_b"+str(Batch_Size)+"_e"+str(Num_Epoch)+".png"])
 plt.savefig(plotPath)

@@ -12,7 +12,8 @@ Classes = dataset_mapper.getClassinfo(TrainDir)
 TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
 perClassData = dataset_mapper.ClassesTotals
 classDict = dataset_mapper.ClassesNames
-imagePerClass = dataset_mapper.imagePathPerClass
+imagePerClass = dataset_mapper.imagePathPerClass+
 
 for imageClass in imagePerClass:
     data_generator(imagePerClass[imageClass])
+    break
