@@ -162,37 +162,14 @@ def getBoundingBox(imagePath):
 	return bboxes,category_ids,r['width'],r['height']
 
 
+def data_generator(image_path):
+	numberOfImages = len(image_path)
+	augsPerImage = 100//numberOfImages
 
-def dataGenerator(imagePath):
-	print("[INFO] loading example image...")
-	image = load_img(imagePath)
-	image = img_to_array(image)
-	image = np.expand_dims(image, axis=0)
+	for k in range(0,numberOfImages):
+		imagePath =  image_path[k]
 
-	aug = ImageDataGenerator(
-		rotation_range=30,
-		zoom_range=0.15,
-		width_shift_range=0.2,
-		height_shift_range=0.2,
-		shear_range=0.15,
-		horizontal_flip=True,
-		fill_mode="nearest")
-	total = 0
 
-	# construct the actual Python generator
-	print("[INFO] generating images...")
-	imageGen = aug.flow(image, batch_size=1, save_to_dir=OUTPUT,
-						save_prefix="image", save_format="jpg")
-
-	# loop over examples from our image data augmentation generator
-	for image in imageGen:
-		# increment our counter
-		total += 1
-
-		# if we have reached the specified number of examples, break
-		# from the loop
-		if total == 4:
-			break
 
 # Classes = dataset_mapper.getClassinfo(TrainDir)
 # TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
@@ -201,6 +178,7 @@ def dataGenerator(imagePath):
 # classesNames = dataset_mapper.ClassesNames
 # imagePerClass = dataset_mapper.imagePathPerClass
 # print(perClassData)
+
 
 # for i in imagePerClass:
 # 	for k in range(0, len(imagePerClass[i])):
@@ -280,6 +258,10 @@ def dataGenerator(imagePath):
 #
 # 		break
 # 	break
+
+'''
+##Draw Imge
+
 with open('aug_image_data.json') as f:
 	data = json.load(f)
 
@@ -294,3 +276,4 @@ for i in data[0]['annotation']:
 
 for i in range(0,4):
 	drawImage(imagePath,bboxes[i],cats[i])
+'''
