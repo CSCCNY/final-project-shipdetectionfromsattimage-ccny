@@ -13,12 +13,13 @@ import cv2
 from matplotlib import pyplot as plt
 import albumentations as A
 import random
+import json
 
 DataDir = "/media/sujoy/New Volume/HRSC2016/"
 TrainDir = DataDir + "Train/"
 TestDir = DataDir + "Test/"
 
-OUTPUT = "../generatedData/"
+AugmentedDir = "../generatedData/"
 
 BOX_COLOR = (255, 0, 0) # Red
 TEXT_COLOR = (255, 255, 255) # White
@@ -83,7 +84,7 @@ def getAnnotation(file):
 		# max_w = w if w > max_w else max_w
 		# max_h = h if h > max_h else max_h
 		obj = {
-			"bbox" : [x1,y1,(x2-x1),(y2-y1)],
+			"bbox" : [x1,y1,x2,y2],
 			# "polygon" : poly,
 			# "bbox_angle": [cx, cy, w, h, a],
 			"category_id": anno.findtext("Class_ID"),
@@ -123,7 +124,7 @@ def getBoundingBox(imagePath):
 	image = cv2.imread(imagePath)
 	image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-	visualize(image, bboxes, category_ids, dataset_mapper.ClassesNames)
+	# visualize(image, bboxes, category_ids, dataset_mapper.ClassesNames)
 	return bboxes,category_ids,r['width'],r['height']
 
 
@@ -170,6 +171,7 @@ print(perClassData)
 for i in imagePerClass:
 	for k in range(0, len(imagePerClass[i])):
 		name= '/media/sujoy/New Volume/HRSC2016/Train/AllImages/100000637.bmp'
+
 		# bboxes,category_ids,max_w,max_h = getBoundingBox(imagePerClass[i][k])
 		bboxes, category_ids, max_w, max_h = getBoundingBox(name)
 
@@ -185,7 +187,7 @@ for i in imagePerClass:
 				A.RandomBrightnessContrast(brightness_limit=.7, contrast_limit=.7, p=0.8)
 			],
 
-			bbox_params=A.BboxParams(format='coco', label_fields=['category_ids']),
+			bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']),
 		)
 		# counter=7
 		# while(counter < 50):
@@ -197,13 +199,32 @@ for i in imagePerClass:
 		# another_transformed_image = transform(image=image, bboxes=bboxes, category_ids=category_ids)
 		# another_transformed_image1 = transform(image=image, bboxes=bboxes, category_ids=category_ids)
 		#
-		visualize(
-			transformed['image'],
-			transformed['bboxes'],
-			transformed['category_ids'],
-			dataset_mapper.ClassesNames
-		)
-		cv2.imwrite("abcd.bmp", transformed['image'])
+		# visualize(
+		# 	transformed['image'],
+		# 	transformed['bboxes'],
+		# 	transformed['category_ids'],
+		# 	dataset_mapper.ClassesNames
+		# )
+		fileName = AugmentedDir + str.split((str.split(name,'/')[-1]),'.')[0] +'_'+str(k) +'.bmp'
+		cv2.imwrite(fileName, transformed['image'])
+		aug_image = {}
+		aug_image['file_name'] = fileName
+		aug_image['height'] = transformed['image'].shape[0]
+		aug_image['width'] = transformed['image'].shape[1]
+		objs=[]
+
+		for cat in range(0,len(transformed['category_ids'])):
+			obj = {}
+			obj['x_min'] = transformed['bboxes'][cat][0]
+			obj['y_min'] =transformed['bboxes'][cat][1]
+			obj['x_max'] =transformed['bboxes'][cat][2]
+			obj['y_max'] =transformed['bboxes'][cat][3]
+			obj['classID'] =transformed['category_ids'][cat]
+			objs.append(obj)
+		aug_image['annotation']=objs
+		# print(aug_image)
+		with open('aug_image_data.json', 'a') as json_file:
+			json.dump(aug_image, json_file,indent=2)
 
 
 		# visualize(
