@@ -1169,12 +1169,12 @@ lambda_cls_regr = 1.0
 lambda_cls_class = 1.0
 
 epsilon = 1e-4
-AnnotationFile = "ship_data.csv"
+# AnnotationFile = "ship_data.csv"
 # get_data(AnnotationFile)
 
-base_path = '/media/sujoy/New Volume/Github/final-project-shipdetectionfromsattimage-ccny/'
+# base_path = '/media/sujoy/New Volume/Github/final-project-shipdetectionfromsattimage-ccny/'
 
-
+base_path = '/home/sujoy/DNN/final-project-shipdetectionfromsattimage-ccny/'
 train_path =  'ship_data_original.csv' # Training data (annotation file)
 
 num_rois = 4 # Number of RoIs to process at once.
