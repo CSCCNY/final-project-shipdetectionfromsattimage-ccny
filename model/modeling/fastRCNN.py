@@ -1308,10 +1308,11 @@ else:
 #         cv2.putText(img, 'pos anchor bbox '+str(i+1), (center[0]-int(anc_w/2), center[1]-int(anc_h/2)-5), cv2.FONT_HERSHEY_DUPLEX, 0.5, color, 1)
 
 print('Green bboxes is ground-truth bbox. Others are positive anchors')
+
 plt.figure(figsize=(8,8))
 plt.grid()
 plt.imshow(img)
-plt.show()
+plt.savefig("green bbox with anchor.png")
 
 input_shape_img = (None, None, 3)
 
@@ -1559,3 +1560,37 @@ for epoch_num in range(num_epochs):
             continue
 
 print('Training complete, exiting.')
+
+plt.figure(figsize=(15,5))
+plt.subplot(1,2,1)
+plt.plot(np.arange(0, r_epochs), record_df['mean_overlapping_bboxes'], 'r')
+plt.title('mean_overlapping_bboxes')
+plt.subplot(1,2,2)
+plt.plot(np.arange(0, r_epochs), record_df['class_acc'], 'r')
+plt.title('class_acc')
+plt.savefig("classAccuracy.png")
+
+
+plt.figure(figsize=(15,5))
+plt.subplot(1,2,1)
+plt.plot(np.arange(0, r_epochs), record_df['loss_rpn_cls'], 'r')
+plt.title('loss_rpn_cls')
+plt.subplot(1,2,2)
+plt.plot(np.arange(0, r_epochs), record_df['loss_rpn_regr'], 'r')
+plt.title('loss_rpn_regr')
+plt.savefig("lossRpnRegression.png")
+
+
+
+plt.figure(figsize=(15,5))
+plt.subplot(1,2,1)
+plt.plot(np.arange(0, r_epochs), record_df['loss_class_cls'], 'r')
+plt.title('loss_class_cls')
+plt.subplot(1,2,2)
+plt.plot(np.arange(0, r_epochs), record_df['loss_class_regr'], 'r')
+plt.title('loss_class_regr')
+plt.savefig("lossRpnRegression.png")
+
+plt.plot(np.arange(0, r_epochs), record_df['curr_loss'], 'r')
+plt.title('total_loss')
+plt.savefig("totalLoss.png")
