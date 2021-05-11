@@ -39,8 +39,8 @@ augmented_image_data_file =AugmentedFileDir + "aug_image_data.json"
 Classes = dataset_mapper.getClassinfo(TrainDir)
 TrainData = dataset_mapper.get_Ship_dicts(TrainDir)
 print(dataset_mapper.ClassesTotals)
-TrainData = dataset_mapper.get_augmented_Ship_dicts(augmented_image_data_file,TrainData)
-print(dataset_mapper.ClassesTotals)
+# TrainData = dataset_mapper.get_augmented_Ship_dicts(augmented_image_data_file,TrainData)
+# print(dataset_mapper.ClassesTotals)
 data,labels,bboxes,imagePaths,lb= data_preprocess.preprocess(TrainData)
 
 
@@ -73,13 +73,15 @@ flatten = Flatten()(flatten)
 #
 # # construct a fully-connected layer header to output the predicted
 # # bounding box coordinates
+bboxHead = Dense(256, activation="relu")(flatten)
+bboxHead = Dropout(0.2)(bboxHead)
 bboxHead = Dense(128, activation="relu")(flatten)
 bboxHead = Dropout(0.2)(bboxHead)
 bboxHead = Dense(64, activation="relu")(bboxHead)
 bboxHead = Dropout(0.2)(bboxHead)
 bboxHead = Dense(32, activation="relu")(bboxHead)
 bboxHead = Dropout(0.2)(bboxHead)
-bboxHead = Dense(4, activation="relu",name="bounding_box")(bboxHead)
+bboxHead = Dense(4, activation="sigmoid",name="bounding_box")(bboxHead)
 #
 # # construct a second fully-connected layer head, this one to predict
 # # the class label
@@ -116,7 +118,7 @@ opt = Adam(lr=0.0001)
 model.compile(loss=losses, optimizer=opt, metrics=["accuracy"], loss_weights=lossWeights)
 print(model.summary())
 Batch_Size=2
-Num_Epoch=50
+Num_Epoch=100
 # checkpoint_path = "../checkpoint/cp-{epoch:04d}.ckpt"
 # checkpoint_dir = os.path.dirname(checkpoint_path)
 
@@ -152,11 +154,11 @@ H = model.fit(
 
 # serialize the model to disk
 print("saving object detector model...")
-model.save('../model_weights/balanced_aug_basic_model_b'+str(Batch_Size)+'_e'+str(Num_Epoch)+'.h5', save_format="h5")
+model.save('../model_weights/new_basic_model_b'+str(Batch_Size)+'_e'+str(Num_Epoch)+'.h5', save_format="h5")
 
 # serialize the label binarizer to disk
 print("saving label...")
-f = open('../model_weights/balanced_aug_basic_model'+'_b'+str(Batch_Size)+'_e'+str(Num_Epoch)+'.pickle', "wb")
+f = open('../model_weights/new_basic_model'+'_b'+str(Batch_Size)+'_e'+str(Num_Epoch)+'.pickle', "wb")
 f.write(pickle.dumps(lb))
 f.close()
 
@@ -179,7 +181,7 @@ for (i, l) in enumerate(lossNames):
 
 # save the losses figure and create a new figure for the accuracies
 plt.tight_layout()
-plotPath = os.path.sep.join(["../plots/", "balanced_aug_losses"+"_b"+str(Batch_Size)+"_e"+str(Num_Epoch)+".png"])
+plotPath = os.path.sep.join(["../plots/", "new_basic_model_losses"+"_b"+str(Batch_Size)+"_e"+str(Num_Epoch)+".png"])
 plt.savefig(plotPath)
 plt.close()
 
@@ -194,5 +196,5 @@ plt.ylabel("Accuracy")
 plt.legend(loc="lower left")
 
 # save the accuracies plot
-plotPath = os.path.sep.join(["../plots/", "balanced_aug_accs"+"_b"+str(Batch_Size)+"_e"+str(Num_Epoch)+".png"])
+plotPath = os.path.sep.join(["../plots/", "new_basic_model_accs"+"_b"+str(Batch_Size)+"_e"+str(Num_Epoch)+".png"])
 plt.savefig(plotPath)

@@ -1172,9 +1172,9 @@ epsilon = 1e-4
 # AnnotationFile = "ship_data.csv"
 # get_data(AnnotationFile)
 
-# base_path = '/media/sujoy/New Volume/Github/final-project-shipdetectionfromsattimage-ccny/'
+base_path = '/media/sujoy/New Volume/Github/final-project-shipdetectionfromsattimage-ccny/'
 
-base_path = '/home/sujoy/DNN/final-project-shipdetectionfromsattimage-ccny/'
+# base_path = '/home/sujoy/DNN/final-project-shipdetectionfromsattimage-ccny/'
 train_path =  'ship_data_original.csv' # Training data (annotation file)
 
 num_rois = 4 # Number of RoIs to process at once.
@@ -1382,8 +1382,8 @@ model_all.compile(optimizer='sgd', loss='mae')
 total_epochs = len(record_df)
 r_epochs = len(record_df)
 
-epoch_length = 1000
-num_epochs = 40
+epoch_length = 200
+num_epochs = 50
 iter_num = 0
 
 total_epochs += num_epochs
@@ -1398,199 +1398,407 @@ else:
     best_loss = np.min(r_curr_loss)
 
 start_time = time.time()
-for epoch_num in range(num_epochs):
-
-    progbar = generic_utils.Progbar(epoch_length)
-    print('Epoch {}/{}'.format(r_epochs + 1, total_epochs))
-
-    r_epochs += 1
-
-    while True:
-        try:
-
-            if len(rpn_accuracy_rpn_monitor) == epoch_length and C.verbose:
-                mean_overlapping_bboxes = float(sum(rpn_accuracy_rpn_monitor)) / len(rpn_accuracy_rpn_monitor)
-                rpn_accuracy_rpn_monitor = []
-                #                 print('Average number of overlapping bounding boxes from RPN = {} for {} previous iterations'.format(mean_overlapping_bboxes, epoch_length))
-                if mean_overlapping_bboxes == 0:
-                    print(
-                        'RPN is not producing bounding boxes that overlap the ground truth boxes. Check RPN settings or keep training.')
-
-            # Generate X (x_img) and label Y ([y_rpn_cls, y_rpn_regr])
-            X, Y, img_data, debug_img, debug_num_pos = next(data_gen_train)
-
-            # Train rpn model and get loss value [_, loss_rpn_cls, loss_rpn_regr]
-            loss_rpn = model_rpn.train_on_batch(X, Y)
-
-            # Get predicted rpn from rpn model [rpn_cls, rpn_regr]
-            P_rpn = model_rpn.predict_on_batch(X)
-
-            # R: bboxes (shape=(300,4))
-            # Convert rpn layer to roi bboxes
-            R = rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.7,
-                           max_boxes=300)
-
-            # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
-            # X2: bboxes that iou > C.classifier_min_overlap for all gt bboxes in 300 non_max_suppression bboxes
-            # Y1: one hot code for bboxes from above => x_roi (X)
-            # Y2: corresponding labels and corresponding gt bboxes
-            X2, Y1, Y2, IouS = calc_iou(R, img_data, C, class_mapping)
-
-            # If X2 is None means there are no matching bboxes
-            if X2 is None:
-                rpn_accuracy_rpn_monitor.append(0)
-                rpn_accuracy_for_epoch.append(0)
-                continue
-
-            # Find out the positive anchors and negative anchors
-            neg_samples = np.where(Y1[0, :, -1] == 1)
-            pos_samples = np.where(Y1[0, :, -1] == 0)
-
-            if len(neg_samples) > 0:
-                neg_samples = neg_samples[0]
-            else:
-                neg_samples = []
-
-            if len(pos_samples) > 0:
-                pos_samples = pos_samples[0]
-            else:
-                pos_samples = []
-
-            rpn_accuracy_rpn_monitor.append(len(pos_samples))
-            rpn_accuracy_for_epoch.append((len(pos_samples)))
-
-            if C.num_rois > 1:
-                # If number of positive anchors is larger than 4//2 = 2, randomly choose 2 pos samples
-                if len(pos_samples) < C.num_rois // 2:
-                    selected_pos_samples = pos_samples.tolist()
-                else:
-                    selected_pos_samples = np.random.choice(pos_samples, C.num_rois // 2, replace=False).tolist()
-
-                # Randomly choose (num_rois - num_pos) neg samples
-                try:
-                    selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples),
-                                                            replace=False).tolist()
-                except:
-                    selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples),
-                                                            replace=True).tolist()
-
-                # Save all the pos and neg samples in sel_samples
-                sel_samples = selected_pos_samples + selected_neg_samples
-            else:
-                # in the extreme case where num_rois = 1, we pick a random pos or neg sample
-                selected_pos_samples = pos_samples.tolist()
-                selected_neg_samples = neg_samples.tolist()
-                if np.random.randint(0, 2):
-                    sel_samples = random.choice(neg_samples)
-                else:
-                    sel_samples = random.choice(pos_samples)
-
-            # training_data: [X, X2[:, sel_samples, :]]
-            # labels: [Y1[:, sel_samples, :], Y2[:, sel_samples, :]]
-            #  X                     => img_data resized image
-            #  X2[:, sel_samples, :] => num_rois (4 in here) bboxes which contains selected neg and pos
-            #  Y1[:, sel_samples, :] => one hot encode for num_rois bboxes which contains selected neg and pos
-            #  Y2[:, sel_samples, :] => labels and gt bboxes for num_rois bboxes which contains selected neg and pos
-            loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]],
-                                                         [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
-
-            losses[iter_num, 0] = loss_rpn[1]
-            losses[iter_num, 1] = loss_rpn[2]
-
-            losses[iter_num, 2] = loss_class[1]
-            losses[iter_num, 3] = loss_class[2]
-            losses[iter_num, 4] = loss_class[3]
-
-            iter_num += 1
-
-            progbar.update(iter_num,
-                           [('rpn_cls', np.mean(losses[:iter_num, 0])), ('rpn_regr', np.mean(losses[:iter_num, 1])),
-                            ('final_cls', np.mean(losses[:iter_num, 2])),
-                            ('final_regr', np.mean(losses[:iter_num, 3]))])
-
-            if iter_num == epoch_length:
-                loss_rpn_cls = np.mean(losses[:, 0])
-                loss_rpn_regr = np.mean(losses[:, 1])
-                loss_class_cls = np.mean(losses[:, 2])
-                loss_class_regr = np.mean(losses[:, 3])
-                class_acc = np.mean(losses[:, 4])
-
-                mean_overlapping_bboxes = float(sum(rpn_accuracy_for_epoch)) / len(rpn_accuracy_for_epoch)
-                rpn_accuracy_for_epoch = []
-
-                if C.verbose:
-                    print('Mean number of bounding boxes from RPN overlapping ground truth boxes: {}'.format(
-                        mean_overlapping_bboxes))
-                    print('Classifier accuracy for bounding boxes from RPN: {}'.format(class_acc))
-                    print('Loss RPN classifier: {}'.format(loss_rpn_cls))
-                    print('Loss RPN regression: {}'.format(loss_rpn_regr))
-                    print('Loss Detector classifier: {}'.format(loss_class_cls))
-                    print('Loss Detector regression: {}'.format(loss_class_regr))
-                    print('Total loss: {}'.format(loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr))
-                    print('Elapsed time: {}'.format(time.time() - start_time))
-                    elapsed_time = (time.time() - start_time) / 60
-
-                curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr
-                iter_num = 0
-                start_time = time.time()
-
-                if curr_loss < best_loss:
-                    if C.verbose:
-                        print('Total loss decreased from {} to {}, saving weights'.format(best_loss, curr_loss))
-                    best_loss = curr_loss
-                    model_all.save_weights(C.model_path)
-
-                new_row = {'mean_overlapping_bboxes': round(mean_overlapping_bboxes, 3),
-                           'class_acc': round(class_acc, 3),
-                           'loss_rpn_cls': round(loss_rpn_cls, 3),
-                           'loss_rpn_regr': round(loss_rpn_regr, 3),
-                           'loss_class_cls': round(loss_class_cls, 3),
-                           'loss_class_regr': round(loss_class_regr, 3),
-                           'curr_loss': round(curr_loss, 3),
-                           'elapsed_time': round(elapsed_time, 3),
-                           'mAP': 0}
-
-                record_df = record_df.append(new_row, ignore_index=True)
-                record_df.to_csv(record_path, index=0)
-
-                break
-
-        except Exception as e:
-            print('Exception: {}'.format(e))
-            continue
+# for epoch_num in range(num_epochs):
+#
+#     progbar = generic_utils.Progbar(epoch_length)
+#     print('Epoch {}/{}'.format(r_epochs + 1, total_epochs))
+#
+#     r_epochs += 1
+#
+#     while True:
+#         try:
+#
+#             if len(rpn_accuracy_rpn_monitor) == epoch_length and C.verbose:
+#                 mean_overlapping_bboxes = float(sum(rpn_accuracy_rpn_monitor)) / len(rpn_accuracy_rpn_monitor)
+#                 rpn_accuracy_rpn_monitor = []
+#                 #                 print('Average number of overlapping bounding boxes from RPN = {} for {} previous iterations'.format(mean_overlapping_bboxes, epoch_length))
+#                 if mean_overlapping_bboxes == 0:
+#                     print(
+#                         'RPN is not producing bounding boxes that overlap the ground truth boxes. Check RPN settings or keep training.')
+#
+#             # Generate X (x_img) and label Y ([y_rpn_cls, y_rpn_regr])
+#             X, Y, img_data, debug_img, debug_num_pos = next(data_gen_train)
+#
+#             # Train rpn model and get loss value [_, loss_rpn_cls, loss_rpn_regr]
+#             loss_rpn = model_rpn.train_on_batch(X, Y)
+#
+#             # Get predicted rpn from rpn model [rpn_cls, rpn_regr]
+#             P_rpn = model_rpn.predict_on_batch(X)
+#
+#             # R: bboxes (shape=(300,4))
+#             # Convert rpn layer to roi bboxes
+#             R = rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.7,
+#                            max_boxes=300)
+#
+#             # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
+#             # X2: bboxes that iou > C.classifier_min_overlap for all gt bboxes in 300 non_max_suppression bboxes
+#             # Y1: one hot code for bboxes from above => x_roi (X)
+#             # Y2: corresponding labels and corresponding gt bboxes
+#             X2, Y1, Y2, IouS = calc_iou(R, img_data, C, class_mapping)
+#
+#             # If X2 is None means there are no matching bboxes
+#             if X2 is None:
+#                 rpn_accuracy_rpn_monitor.append(0)
+#                 rpn_accuracy_for_epoch.append(0)
+#                 continue
+#
+#             # Find out the positive anchors and negative anchors
+#             neg_samples = np.where(Y1[0, :, -1] == 1)
+#             pos_samples = np.where(Y1[0, :, -1] == 0)
+#
+#             if len(neg_samples) > 0:
+#                 neg_samples = neg_samples[0]
+#             else:
+#                 neg_samples = []
+#
+#             if len(pos_samples) > 0:
+#                 pos_samples = pos_samples[0]
+#             else:
+#                 pos_samples = []
+#
+#             rpn_accuracy_rpn_monitor.append(len(pos_samples))
+#             rpn_accuracy_for_epoch.append((len(pos_samples)))
+#
+#             if C.num_rois > 1:
+#                 # If number of positive anchors is larger than 4//2 = 2, randomly choose 2 pos samples
+#                 if len(pos_samples) < C.num_rois // 2:
+#                     selected_pos_samples = pos_samples.tolist()
+#                 else:
+#                     selected_pos_samples = np.random.choice(pos_samples, C.num_rois // 2, replace=False).tolist()
+#
+#                 # Randomly choose (num_rois - num_pos) neg samples
+#                 try:
+#                     selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples),
+#                                                             replace=False).tolist()
+#                 except:
+#                     selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples),
+#                                                             replace=True).tolist()
+#
+#                 # Save all the pos and neg samples in sel_samples
+#                 sel_samples = selected_pos_samples + selected_neg_samples
+#             else:
+#                 # in the extreme case where num_rois = 1, we pick a random pos or neg sample
+#                 selected_pos_samples = pos_samples.tolist()
+#                 selected_neg_samples = neg_samples.tolist()
+#                 if np.random.randint(0, 2):
+#                     sel_samples = random.choice(neg_samples)
+#                 else:
+#                     sel_samples = random.choice(pos_samples)
+#
+#             # training_data: [X, X2[:, sel_samples, :]]
+#             # labels: [Y1[:, sel_samples, :], Y2[:, sel_samples, :]]
+#             #  X                     => img_data resized image
+#             #  X2[:, sel_samples, :] => num_rois (4 in here) bboxes which contains selected neg and pos
+#             #  Y1[:, sel_samples, :] => one hot encode for num_rois bboxes which contains selected neg and pos
+#             #  Y2[:, sel_samples, :] => labels and gt bboxes for num_rois bboxes which contains selected neg and pos
+#             loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]],
+#                                                          [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
+#
+#             losses[iter_num, 0] = loss_rpn[1]
+#             losses[iter_num, 1] = loss_rpn[2]
+#
+#             losses[iter_num, 2] = loss_class[1]
+#             losses[iter_num, 3] = loss_class[2]
+#             losses[iter_num, 4] = loss_class[3]
+#
+#             iter_num += 1
+#
+#             progbar.update(iter_num,
+#                            [('rpn_cls', np.mean(losses[:iter_num, 0])), ('rpn_regr', np.mean(losses[:iter_num, 1])),
+#                             ('final_cls', np.mean(losses[:iter_num, 2])),
+#                             ('final_regr', np.mean(losses[:iter_num, 3]))])
+#
+#             if iter_num == epoch_length:
+#                 loss_rpn_cls = np.mean(losses[:, 0])
+#                 loss_rpn_regr = np.mean(losses[:, 1])
+#                 loss_class_cls = np.mean(losses[:, 2])
+#                 loss_class_regr = np.mean(losses[:, 3])
+#                 class_acc = np.mean(losses[:, 4])
+#
+#                 mean_overlapping_bboxes = float(sum(rpn_accuracy_for_epoch)) / len(rpn_accuracy_for_epoch)
+#                 rpn_accuracy_for_epoch = []
+#
+#                 if C.verbose:
+#                     print('Mean number of bounding boxes from RPN overlapping ground truth boxes: {}'.format(
+#                         mean_overlapping_bboxes))
+#                     print('Classifier accuracy for bounding boxes from RPN: {}'.format(class_acc))
+#                     print('Loss RPN classifier: {}'.format(loss_rpn_cls))
+#                     print('Loss RPN regression: {}'.format(loss_rpn_regr))
+#                     print('Loss Detector classifier: {}'.format(loss_class_cls))
+#                     print('Loss Detector regression: {}'.format(loss_class_regr))
+#                     print('Total loss: {}'.format(loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr))
+#                     print('Elapsed time: {}'.format(time.time() - start_time))
+#                     elapsed_time = (time.time() - start_time) / 60
+#
+#                 curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr
+#                 iter_num = 0
+#                 start_time = time.time()
+#
+#                 if curr_loss < best_loss:
+#                     if C.verbose:
+#                         print('Total loss decreased from {} to {}, saving weights'.format(best_loss, curr_loss))
+#                     best_loss = curr_loss
+#                     model_all.save_weights(C.model_path)
+#
+#                 new_row = {'mean_overlapping_bboxes': round(mean_overlapping_bboxes, 3),
+#                            'class_acc': round(class_acc, 3),
+#                            'loss_rpn_cls': round(loss_rpn_cls, 3),
+#                            'loss_rpn_regr': round(loss_rpn_regr, 3),
+#                            'loss_class_cls': round(loss_class_cls, 3),
+#                            'loss_class_regr': round(loss_class_regr, 3),
+#                            'curr_loss': round(curr_loss, 3),
+#                            'elapsed_time': round(elapsed_time, 3),
+#                            'mAP': 0}
+#
+#                 record_df = record_df.append(new_row, ignore_index=True)
+#                 record_df.to_csv(record_path, index=0)
+#
+#                 break
+#
+#         except Exception as e:
+#             print('Exception: {}'.format(e))
+#             continue
 
 print('Training complete, exiting.')
 
-plt.figure(figsize=(15,5))
-plt.subplot(1,2,1)
-plt.plot(np.arange(0, r_epochs), record_df['mean_overlapping_bboxes'], 'r')
-plt.title('mean_overlapping_bboxes')
-plt.subplot(1,2,2)
-plt.plot(np.arange(0, r_epochs), record_df['class_acc'], 'r')
-plt.title('class_acc')
-plt.savefig("classAccuracy.png")
+# plt.figure(figsize=(15,5))
+# plt.subplot(1,2,1)
+# plt.plot(np.arange(0, r_epochs), record_df['mean_overlapping_bboxes'], 'r')
+# plt.title('mean_overlapping_bboxes')
+# plt.subplot(1,2,2)
+# plt.plot(np.arange(0, r_epochs), record_df['class_acc'], 'r')
+# plt.title('class_acc')
+# plt.savefig("classAccuracy.png")
+#
+#
+# plt.figure(figsize=(15,5))
+# plt.subplot(1,2,1)
+# plt.plot(np.arange(0, r_epochs), record_df['loss_rpn_cls'], 'r')
+# plt.title('loss_rpn_cls')
+# plt.subplot(1,2,2)
+# plt.plot(np.arange(0, r_epochs), record_df['loss_rpn_regr'], 'r')
+# plt.title('loss_rpn_regr')
+# plt.savefig("lossRpnRegression.png")
+#
+#
+#
+# plt.figure(figsize=(15,5))
+# plt.subplot(1,2,1)
+# plt.plot(np.arange(0, r_epochs), record_df['loss_class_cls'], 'r')
+# plt.title('loss_class_cls')
+# plt.subplot(1,2,2)
+# plt.plot(np.arange(0, r_epochs), record_df['loss_class_regr'], 'r')
+# plt.title('loss_class_regr')
+# plt.savefig("lossRpnRegression.png")
+#
+# plt.plot(np.arange(0, r_epochs), record_df['curr_loss'], 'r')
+# plt.title('total_loss')
+# plt.savefig("totalLoss.png")
+#
+# Testing
+
+def format_img_size(img, C):
+    """ formats the image size based on config """
+    img_min_side = float(C.im_size)
+    (height, width, _) = img.shape
+
+    if width <= height:
+        ratio = img_min_side / width
+        new_height = int(ratio * height)
+        new_width = int(img_min_side)
+    else:
+        ratio = img_min_side / height
+        new_width = int(ratio * width)
+        new_height = int(img_min_side)
+    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+    return img, ratio
 
 
-plt.figure(figsize=(15,5))
-plt.subplot(1,2,1)
-plt.plot(np.arange(0, r_epochs), record_df['loss_rpn_cls'], 'r')
-plt.title('loss_rpn_cls')
-plt.subplot(1,2,2)
-plt.plot(np.arange(0, r_epochs), record_df['loss_rpn_regr'], 'r')
-plt.title('loss_rpn_regr')
-plt.savefig("lossRpnRegression.png")
+def format_img_channels(img, C):
+    """ formats the image channels based on config """
+    img = img[:, :, (2, 1, 0)]
+    img = img.astype(np.float32)
+    img[:, :, 0] -= C.img_channel_mean[0]
+    img[:, :, 1] -= C.img_channel_mean[1]
+    img[:, :, 2] -= C.img_channel_mean[2]
+    img /= C.img_scaling_factor
+    img = np.transpose(img, (2, 0, 1))
+    img = np.expand_dims(img, axis=0)
+    return img
 
 
+def format_img(img, C):
+    """ formats an image for model prediction based on config """
+    img, ratio = format_img_size(img, C)
+    img = format_img_channels(img, C)
+    return img, ratio
 
-plt.figure(figsize=(15,5))
-plt.subplot(1,2,1)
-plt.plot(np.arange(0, r_epochs), record_df['loss_class_cls'], 'r')
-plt.title('loss_class_cls')
-plt.subplot(1,2,2)
-plt.plot(np.arange(0, r_epochs), record_df['loss_class_regr'], 'r')
-plt.title('loss_class_regr')
-plt.savefig("lossRpnRegression.png")
 
-plt.plot(np.arange(0, r_epochs), record_df['curr_loss'], 'r')
-plt.title('total_loss')
-plt.savefig("totalLoss.png")
+# Method to transform the coordinates of the bounding box to its original size
+def get_real_coordinates(ratio, x1, y1, x2, y2):
+    real_x1 = int(round(x1 // ratio))
+    real_y1 = int(round(y1 // ratio))
+    real_x2 = int(round(x2 // ratio))
+    real_y2 = int(round(y2 // ratio))
+
+    return (real_x1, real_y1, real_x2, real_y2)
+
+
+num_features = 512
+
+input_shape_img = (None, None, 3)
+input_shape_features = (None, None, num_features)
+
+img_input = Input(shape=input_shape_img)
+roi_input = Input(shape=(C.num_rois, 4))
+feature_map_input = Input(shape=input_shape_features)
+
+# define the base network (VGG here, can be Resnet50, Inception, etc)
+shared_layers = nn_base(img_input, trainable=True)
+
+# define the RPN, built on the base layers
+num_anchors = len(C.anchor_box_scales) * len(C.anchor_box_ratios)
+rpn_layers = rpn_layer(shared_layers, num_anchors)
+
+classifier = classifier_layer(feature_map_input, roi_input, C.num_rois, nb_classes=len(C.class_mapping))
+
+model_rpn = Model(img_input, rpn_layers)
+model_classifier_only = Model([feature_map_input, roi_input], classifier)
+
+model_classifier = Model([feature_map_input, roi_input], classifier)
+
+print('Loading weights from {}'.format(C.model_path))
+model_rpn.load_weights(C.model_path, by_name=True)
+model_classifier.load_weights(C.model_path, by_name=True)
+
+model_rpn.compile(optimizer='sgd', loss='mse')
+model_classifier.compile(optimizer='sgd', loss='mse')
+
+class_mapping = C.class_mapping
+class_mapping = {v: k for k, v in class_mapping.items()}
+print(class_mapping)
+class_to_color = {class_mapping[v]: np.random.randint(0, 255, 3) for v in class_mapping}
+
+
+test_base_path = "/media/sujoy/New Volume/HRSC2016/Test/AllImages/"
+test_imgs = os.listdir(test_base_path)
+
+imgs_path = []
+for i in range(12):
+    idx = np.random.randint(len(test_imgs))
+    imgs_path.append(test_imgs[idx])
+
+all_imgs = []
+
+classes = {}
+
+# If the box classification value is less than this, we ignore this box
+bbox_threshold = 0.7
+
+for idx, img_name in enumerate(imgs_path):
+    if not img_name.lower().endswith(('.bmp', '.jpeg', '.jpg', '.png', '.tif', '.tiff')):
+        continue
+    print(img_name)
+    st = time.time()
+    filepath = os.path.join(test_base_path, img_name)
+
+    img = cv2.imread(filepath)
+
+    X, ratio = format_img(img, C)
+
+    X = np.transpose(X, (0, 2, 3, 1))
+
+    # get output layer Y1, Y2 from the RPN and the feature maps F
+    # Y1: y_rpn_cls
+    # Y2: y_rpn_regr
+    [Y1, Y2, F] = model_rpn.predict(X)
+
+    # Get bboxes by applying NMS
+    # R.shape = (300, 4)
+    R = rpn_to_roi(Y1, Y2, C, K.image_data_format(), overlap_thresh=0.7)
+
+    # convert from (x1,y1,x2,y2) to (x,y,w,h)
+    R[:, 2] -= R[:, 0]
+    R[:, 3] -= R[:, 1]
+
+    # apply the spatial pyramid pooling to the proposed regions
+    bboxes = {}
+    probs = {}
+
+    for jk in range(R.shape[0] // C.num_rois + 1):
+        ROIs = np.expand_dims(R[C.num_rois * jk:C.num_rois * (jk + 1), :], axis=0)
+        if ROIs.shape[1] == 0:
+            break
+
+        if jk == R.shape[0] // C.num_rois:
+            # pad R
+            curr_shape = ROIs.shape
+            target_shape = (curr_shape[0], C.num_rois, curr_shape[2])
+            ROIs_padded = np.zeros(target_shape).astype(ROIs.dtype)
+            ROIs_padded[:, :curr_shape[1], :] = ROIs
+            ROIs_padded[0, curr_shape[1]:, :] = ROIs[0, 0, :]
+            ROIs = ROIs_padded
+
+        [P_cls, P_regr] = model_classifier_only.predict([F, ROIs])
+
+        # Calculate bboxes coordinates on resized image
+        for ii in range(P_cls.shape[1]):
+            # Ignore 'bg' class
+            if np.max(P_cls[0, ii, :]) < bbox_threshold or np.argmax(P_cls[0, ii, :]) == (P_cls.shape[2] - 1):
+                continue
+
+            cls_name = class_mapping[np.argmax(P_cls[0, ii, :])]
+
+            if cls_name not in bboxes:
+                bboxes[cls_name] = []
+                probs[cls_name] = []
+
+            (x, y, w, h) = ROIs[0, ii, :]
+
+            cls_num = np.argmax(P_cls[0, ii, :])
+            try:
+                (tx, ty, tw, th) = P_regr[0, ii, 4 * cls_num:4 * (cls_num + 1)]
+                tx /= C.classifier_regr_std[0]
+                ty /= C.classifier_regr_std[1]
+                tw /= C.classifier_regr_std[2]
+                th /= C.classifier_regr_std[3]
+                x, y, w, h = apply_regr(x, y, w, h, tx, ty, tw, th)
+            except:
+                pass
+            bboxes[cls_name].append(
+                [C.rpn_stride * x, C.rpn_stride * y, C.rpn_stride * (x + w), C.rpn_stride * (y + h)])
+            probs[cls_name].append(np.max(P_cls[0, ii, :]))
+
+    all_dets = []
+
+    for key in bboxes:
+        bbox = np.array(bboxes[key])
+
+        new_boxes, new_probs = non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh=0.2)
+        for jk in range(new_boxes.shape[0]):
+            (x1, y1, x2, y2) = new_boxes[jk, :]
+
+            # Calculate real coordinates on original image
+            (real_x1, real_y1, real_x2, real_y2) = get_real_coordinates(ratio, x1, y1, x2, y2)
+
+            cv2.rectangle(img, (real_x1, real_y1), (real_x2, real_y2),
+                          (int(class_to_color[key][0]), int(class_to_color[key][1]), int(class_to_color[key][2])), 4)
+
+            textLabel = '{}: {}'.format(key, int(100 * new_probs[jk]))
+            all_dets.append((key, 100 * new_probs[jk]))
+
+            (retval, baseLine) = cv2.getTextSize(textLabel, cv2.FONT_HERSHEY_COMPLEX, 1, 1)
+            textOrg = (real_x1, real_y1 - 0)
+
+            cv2.rectangle(img, (textOrg[0] - 5, textOrg[1] + baseLine - 5),
+                          (textOrg[0] + retval[0] + 5, textOrg[1] - retval[1] - 5), (0, 0, 0), 1)
+            cv2.rectangle(img, (textOrg[0] - 5, textOrg[1] + baseLine - 5),
+                          (textOrg[0] + retval[0] + 5, textOrg[1] - retval[1] - 5), (255, 255, 255), -1)
+            cv2.putText(img, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
+
+    print('Elapsed time = {}'.format(time.time() - st))
+    print(all_dets)
+    plt.figure(figsize=(10, 10))
+    plt.grid()
+    plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    plt.show()
