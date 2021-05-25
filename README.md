@@ -20,3 +20,9 @@
 * BasicCNN.py and BasicCNNPredictor uses dataset_mapper to get the training data. then uses CNN model to train the data and predict the data.
 * FastRCNN and FastRCNNtest uses dataset_mapper to get the training data. then uses Fast R CNN model to train the data.
 
+## Run the code
+'''
+pip install -r requrements.txt
+python model/modeling/BasicCNN.py
+
+'''
